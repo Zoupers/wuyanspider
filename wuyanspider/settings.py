@@ -11,6 +11,7 @@
 import sys
 import os
 
+COMMANDS_MODULE = 'wuyanspider.commands'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BOT_NAME = 'wuyanspider'
 
@@ -110,3 +111,4 @@ IPLIST = [
 
 ]
 
+IMAGES_STORE = '/source'

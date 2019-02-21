@@ -8,7 +8,7 @@ from scrapy import Request
 
 class ClassifySpider(scrapy.Spider):
     name = 'classify'
-    allowed_domains = ['douban.com']
+    allowed_domains = ['douban.com', 'doubanio.com']
     start_urls = ['https://movie.douban.com/chart']
 
     def parse(self, response):
@@ -76,8 +76,11 @@ class ClassifySpider(scrapy.Spider):
             content = response.xpath('span[class="all hidden"]').extract()[0].strip()
         response.meta['movie']['details'] = content
         # 对电影剧照的收集
-        images = response.xpath()
-        response.meta['movie']['image'] = images
+        images = response.xpath('//*[@id="related-pic"]/ul/li')
+        image = []
+        for image_ in images:
+            image.extend(image_.xpath('./a/img/@href').extract())
+        response.meta['movie']['image'] = image
         # 对电影演员的收集，这些演员信息最终是要保存一部分到movie的原始信息中的，
         # 所以把movie的原始信息传过去
         # person_url = response.xpath('//*[@id="celebrities"]/h2/span/a/@href').extract()[0]
@@ -101,25 +104,25 @@ class ClassifySpider(scrapy.Spider):
         movie_id = response.meta['movie']['_id']
         # 寻找并分类演员，导演，编剧，然后分别储存为(人物名字，人物ID)的格式，以便以后的查询
         # 并要生成演员的爬取链接来爬取
-        directors = response.xpath()
+        directors = response.xpath('//*[@id="celebrities"]/div[1]/ul/li')
         for director_ in directors:
-            director_url = director_.xpath().extract()[0]
+            director_url = director_.xpath('./div/span[1]/a/@href').extract()[0]
             director_request = Request(director_url, callback=self.person_parse)
             person_id = re.findall('/(\\d+?)/', director_url)[0]
             yield MPRelation(movie_id=movie_id, person_id=person_id, _type=1)
             yield director_request
 
-        actors = response.xpath()
+        actors = response.xpath('//*[@id="celebrities"]/div[2]/ul/li')
         for actor_ in actors:
-            actor_url = actor_.xpath().extract()[0]
+            actor_url = actor_.xpath('./div/span[1]/a/@href').extract()[0]
             actor_request = Request(actor_url, callback=self.person_parse)
             person_id = re.findall('/(\\d+?)/', actor_url)[0]
             yield MPRelation(movie_id=movie_id, person_id=person_id, _type=3)
             yield actor_request
 
-        writers = response.xpath()
+        writers = response.xpath('//*[@id="celebrities"]/div[3]/ul/li')
         for writer_ in writers:
-            writer_url = writer_.xpath().extract()[0]
+            writer_url = writer_.xpath('./div/span[1]/a/@href').extract()[0]
             writer_request = Request(writer_url, callback=self.person_parse)
             person_id = re.findall('/(\\d+?)/', writer_url)[0]
             yield MPRelation(movie_id=movie_id, person_id=person_id, _type=2)
@@ -158,7 +161,6 @@ class ClassifySpider(scrapy.Spider):
         """
         info = response.text
         _id = re.findall('id="headline".*?rel="nofollow".*?https://movie.douban.com/celebrity/(\d*?)/', info, re.S)
-        data = [_id[0]]
         name = re.findall(r'<div id="content">.*?<h1>(.+)</h1>', info, re.S)[0]
         try:
             sex = re.findall(r'<span>性别<.+>:\s*(.*)\s*', info)[0]
@@ -225,4 +227,8 @@ class ClassifySpider(scrapy.Spider):
                                poster=poster,
                                image=image)
         yield person
-
+    #     final_request = Request(person['image'], callback=self.final_person_parse)
+    #     final_request.meta['person'] = person
+    #
+    # def final_person_parse(self, response):
+    #     pass

@@ -9,15 +9,16 @@ from .classify import ClassifySpider
 
 class Top250Spider(scrapy.Spider):
     name = 'top250'
-    allowed_domains = ['douban.com']
-    start_urls = ['https://movie.douban.com/top250']
+    allowed_domains = ['douban.com', 'doubanio.com']
+    start_urls = ['http://movie.douban.com/top250']
 
     def parse(self, response):
         # 为了使用之前已经在classify的爬虫中定义的解析电影方法
         self.parse_source = ClassifySpider()
+        # print(response.text)
         next_page_url = response.xpath('//*[@id="content"]/div/div[1]/div[2]/span[3]/a/@href').extract()
         if next_page_url:
-            yield Request('https://movie.douban.com/top250'+next_page_url[0], callback=self.parse)
+            yield Request('http://movie.douban.com/top250'+next_page_url[0], callback=self.parse)
         movies = response.xpath('//*[@id="content"]/div/div[1]/ol/li')
         for movie_ in movies:
             rank_rank = movie_.xpath('./div/div[1]/em/text()').extract()[0]

@@ -8,6 +8,7 @@ import os
 import json
 import pymysql
 import requests
+from scrapy import Request
 from fake_useragent import UserAgent
 from .items import BaseMovie, BaseActor, RMRelation, MPRelation, BaseComment
 
@@ -277,13 +278,13 @@ class WuyanspiderPipeline(object):
         response = requests.get('https://movie.douban.com', headers=headers)
         cookie = response.cookies
         if _type == 1:
-            poster_path = os.path.join('movie', item['_id']+'.jpg')
+            poster_path = os.path.join('movie', item['_id'] + '.jpg')
             with open(os.path.join(self.pic_path, poster_path), 'wb') as f:
                 f.write(requests.get(item['poster'], headers=headers, cookies=cookie).content)
                 item['poster'] = poster_path
             pictures = []
             for n, pic_url in zip(range(item['image']), item['image']):
-                pic = item['_id']+'_'+str(n)+'.jpg'
+                pic = item['_id'] + '_' + str(n) + '.jpg'
                 pic_path = os.path.join('movie', pic)
                 pictures.append(pic_path)
                 with open(os.path.join(self.pic_path, pic_path), 'wb') as f:
@@ -307,7 +308,7 @@ class WuyanspiderPipeline(object):
             return item
 
         elif _type == 3:
-            pic_ = os.path.join('user', item['user_id']+'.jpg')
+            pic_ = os.path.join('user', item['user_id'] + '.jpg')
             with open(os.path.join(self.pic_path, pic_), 'wb') as f:
                 f.write(requests.get(item['image'], headers=headers, cookies=cookie).content)
                 item['image'] = pic_
