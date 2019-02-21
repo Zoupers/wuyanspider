@@ -3,7 +3,6 @@ import re
 import json
 import scrapy
 from ..items import BaseMovie, BaseActor, BaseComment, RMRelation, MPRelation
-from collections import OrderedDict
 from scrapy import Request
 
 
@@ -82,10 +81,10 @@ class ClassifySpider(scrapy.Spider):
         # 对电影演员的收集，这些演员信息最终是要保存一部分到movie的原始信息中的，
         # 所以把movie的原始信息传过去
         # person_url = response.xpath('//*[@id="celebrities"]/h2/span/a/@href').extract()[0]
-        person_url = 'https://movie.douban.com/subject/'+response.meta['movie']['movie_id']+'/celebrities'
+        person_url = 'https://movie.douban.com/subject/'+response.meta['movie']['_id']+'/celebrities'
         person_request = Request(person_url, callback=self.mpr_parse)
         person_request.meta['movie'] = response.meta['movie']
-        yield person_url
+        yield person_request
         # 然后是对评论信息的收集，存储评论的时候需要电影ID，所以把电影ID传进去
         comment_url = response.xpath('//*[@id="comments-section"]/div[1]/h2/span/a/@href').extract()[0]
         comment_request = Request(comment_url, callback=self.comment_parse)
@@ -103,7 +102,6 @@ class ClassifySpider(scrapy.Spider):
         # 寻找并分类演员，导演，编剧，然后分别储存为(人物名字，人物ID)的格式，以便以后的查询
         # 并要生成演员的爬取链接来爬取
         directors = response.xpath()
-        d = []
         for director_ in directors:
             director_url = director_.xpath().extract()[0]
             director_request = Request(director_url, callback=self.person_parse)
@@ -134,13 +132,14 @@ class ClassifySpider(scrapy.Spider):
         :return:
         """
         movie_id = response.meta['movie_id']
-        comments = response.xpath()
+        comments = re.findall('title="(.*?)".*?"https://www.douban.com/people/(.*?)/".*?src="(.*?)".*?<.*?comment-time.*?title="(.*?)".*?short">(.*?)<', response.text, re.S)
         for comment_ in comments:
-            user_id = comment_.xpath()
-            user_name = comment_.xpath()
-            comm_time = comment_.xpath()
-            comm = comment_.xpath()
-            image = comment_.xpath()
+            # [comment[1], comment[0], str(comment[3]).replace('\n', ''), '''{}'''.format(comment[4])]
+            user_id = comment_[1]
+            user_name = comment_[0]
+            comm_time = str(comment_[3]).replace('\n', '')
+            comm = comment_[4]
+            image = re.sub('/u(.*?)-.*?\\.', '/ul\\1.', comment_[2])
             i = BaseComment(
                 movie_id=movie_id,
                 user_id=user_id,

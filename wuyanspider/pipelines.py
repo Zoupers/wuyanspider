@@ -128,7 +128,7 @@ class WuyanspiderPipeline(object):
                 item['poster'],
                 item['image']
             ])
-            self.db.save()
+            self.db.commit()
 
     def handle_actor(self, item):
         """
@@ -185,16 +185,16 @@ class WuyanspiderPipeline(object):
                     item['image']
                 ]
             )
-            self.db.save()
+            self.db.commit()
 
     def handle_rmr(self, item):
         self.cursor.execute('SHOW TABLES')
         all_table = self.cursor.fetchall()
-        _type = item.pop('_type')
+        _type = item.pop('rank_type')
         if (_type, ) not in all_table:
             try:
                 self.cursor.execute('''
-                CREATE TABLE `%s`(
+                CREATE TABLE %s(
                 `rank` INTEGER NOT NULL PRIMARY KEY,
                 `movie_id` VARCHAR(15) NOT NULL
                 )
@@ -202,14 +202,13 @@ class WuyanspiderPipeline(object):
             except Exception as e:
                 print(e)
 
-        if not self.cursor.execute('SELECT rank FROM `spider_rmr` WHERE movie_id=%s', item['movie_id']):
-            self.cursor.execute('''
-            INSERT INTO `%s`(`rank`, `movie_id`) VALUES(%s, %s)
-            ''', [
+        if not self.cursor.execute('SELECT `rank` FROM '+'`'+_type+'`'+' WHERE movie_id=%s', [item['movie_id'],]):
+            sql = 'INSERT INTO '+'`'+_type+'`'
+            self.cursor.execute(sql+'(`rank`, `movie_id`) VALUES(%s, %s)', [
                 item['rank'],
                 item['movie_id']
             ])
-            self.db.save()
+            self.db.commit()
 
     def handle_mpr(self, item):
         """
@@ -232,36 +231,36 @@ class WuyanspiderPipeline(object):
             except Exception as e:
                 print(e)
         # 据说不用*会节省很多资源
-        if not self.cursor.execute('SELECT movie_id FROM `spider_mpr` WHERE movie_id=%s and person_id=%s and type=%s', item.values()):
+        if not self.cursor.execute('SELECT `movie_id` FROM `spider_mpr` WHERE movie_id=%s and person_id=%s and type=%s', item.values()):
             self.cursor.execute('''
             INSERT INTO `spider_mpr`(`type`, `movie_id`, `person_id`) VALUES(%s, %s, %s)
             ''', [item['_type'], item['movie_id'], item['person_id']])
-            self.db.save()
+            self.db.commit()
 
     def handle_comment(self, item):
         item = self.pic_save(item, 3)
         self.cursor.execute('USE `spider_comment`')
         self.cursor.execute('SHOW TABLES')
         all_table = self.cursor.fetchall()
-        if (item['movie_id'],) not in all_table:
-            name = 'spider_'+item['movie_id']
+        name = 'spider_' + item['movie_id']
+        if (item['movie_id'],) not in all_table or not all_table:
             try:
+                s = 'CREATE TABLE '+'`'+item['movie_id']+'`'
                 self.cursor.execute('''
-                CREATE TABLE `%s`(
+                {}(
                 `user_id` VARCHAR(30),
                 `user_name` VARCHAR(30),
                 `comment_time` DATETIME,
                 `image` VARCHAR(50)
                 )
-                ''', (name,))
+                '''.format(s))
             except Exception as e:
                 print(e)
 
-        if not self.cursor.execute('SELECT movie_id FROM `%s` WHERE user_id=%s', (item['movie_id'], item['user_id'])):
-            self.cursor.execute('''
-            INSERT INTO `%s`(`user_id`, `user_name`, `comment_time`, `image`) VALUES(%s, %s, %s, %s)
-            ''', [name, item['user_id'], item['user_name'], item['comment_time'], item['image']])
-            self.db.save()
+        if not self.cursor.execute('SELECT user_id FROM '+'`'+item['movie_id']+'`'+'WHERE user_id=%s', (item['user_id'],)):
+            sql = 'INSERT INTO '+'`'+item['movie_id']+'`'
+            self.cursor.execute(sql+'(`user_id`, `user_name`, `comment_time`, `image`) VALUES(%s, %s, %s, %s)', [item['user_id'], item['user_name'], item['comment_time'], item['image']])
+            self.db.commit()
 
     def pic_save(self, item, _type):
         """

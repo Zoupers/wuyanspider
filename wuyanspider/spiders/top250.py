@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import re
 import json
 import scrapy
 from scrapy import Request
@@ -9,17 +10,17 @@ from .classify import ClassifySpider
 class Top250Spider(scrapy.Spider):
     name = 'top250'
     allowed_domains = ['douban.com']
-    start_urls = ['http://movie.douban.com/top250']
+    start_urls = ['https://movie.douban.com/top250']
 
     def parse(self, response):
         # 为了使用之前已经在classify的爬虫中定义的解析电影方法
         self.parse_source = ClassifySpider()
         next_page_url = response.xpath('//*[@id="content"]/div/div[1]/div[2]/span[3]/a/@href').extract()
         if next_page_url:
-            yield Request(next_page_url[0], callback=self.parse)
+            yield Request('https://movie.douban.com/top250'+next_page_url[0], callback=self.parse)
         movies = response.xpath('//*[@id="content"]/div/div[1]/ol/li')
         for movie_ in movies:
-            rank_rank = movie_.xpath('./div/div[1]/em').extract()[0]
+            rank_rank = movie_.xpath('./div/div[1]/em/text()').extract()[0]
             name = movie_.xpath('./div/div[2]/div[1]/a/span[1]/text()').extract()[0]
             long = None
             rank = None
@@ -27,18 +28,18 @@ class Top250Spider(scrapy.Spider):
             director = None
             main_actor = None
             writer = None
-            year = movie_.xpath().extract()[0]
-            _class = movie_.xpath().extract()[0]
-            countries = movie_.xpath().extract()[0]
+            year = None
+            _class = None
+            countries = None
             _id = movie_.xpath('./div/div[2]/div[1]/a/@href').extract()[0].split('/')[-2]
-            review = movie_.xpath().extract()[0]
+            review = movie_.xpath('./div/div[2]/div[2]/p[2]/span[@class="inq"]/text()').extract()[0]
             details = None
-            poster = movie_.xpath().extract()[0]
+            poster = movie_.xpath('./div/div[1]/a/img/@src').extract()[0]
             image = None
 
-            movie_url = movie_.xpath().extract()[0]
+            movie_url = movie_.xpath('./div/div[2]/div[1]/a/@href').extract()[0]
 
-            rmr = RMRelation(_type='top250', rank=rank_rank, movie_id=_id)
+            rmr = RMRelation(rank_type='top250', rank=rank_rank, movie_id=_id)
             yield rmr
             movie = BaseMovie(
                 name=name,
@@ -67,18 +68,23 @@ class Top250Spider(scrapy.Spider):
         :param response:
         :return:
         """
-        _all = response.xpath('/html/head/script[19]/text()').extract()[0]
-        total = json.loads(_all.replace('\n', ''))
-        # rank, star_num, image
+        _all = response.xpath('//script[@type="application/ld+json"]/text()').extract()[0]
+        s = _all.replace('\n', '')
+        total = json.loads(s)
+        # rank, star_num, year, _class, countries
+        # image
         # director, main_actor, writer
         response.meta['movie']['rank'] = total['aggregateRating']['ratingValue']
         response.meta['movie']['star_num'] = total['aggregateRating']['ratingCount']
+        response.meta['movie']['year'] = total['datePublished']
+        response.meta['movie']['_class'] = json.dumps(total['genre'])
+        response.meta['movie']['countries'] = re.findall('制片国家/地区:</span> (.*?)<', response.text)[0]
         long = response.xpath('//*[@id="info"]/span[@property="v:runtime"]/text()').extract()[0]
         response.meta['movie']['long'] = long
         try:
-            content = response.xpath('span[property="v:summary"]').extract()[0].strip()
+            content = response.xpath('//span[@property="v:summary"]/text()').extract()[0].strip()
         except Exception as e:
-            content = response.xpath('span[class="all hidden"]').extract()[0].strip()
+            content = response.xpath('//span[@class="all hidden"]/text()').extract()[0].strip()
         response.meta['movie']['details'] = content
         # 对电影剧照的收集
         images = response.xpath('//*[@id="related-pic"]/ul/li')
@@ -90,10 +96,10 @@ class Top250Spider(scrapy.Spider):
         # 对电影演员的收集，这些演员信息最终是要保存一部分到movie的原始信息中的，
         # 所以把movie的原始信息传过去
         # person_url = response.xpath('//*[@id="celebrities"]/h2/span/a/@href').extract()[0]
-        person_url = 'https://movie.douban.com/subject/'+response.meta['movie']['movie_id']+'/celebrities'
+        person_url = 'https://movie.douban.com/subject/'+response.meta['movie']['_id']+'/celebrities'
         person_request = Request(person_url, callback=self.parse_source.mpr_parse)
         person_request.meta['movie'] = response.meta['movie']
-        yield person_url
+        yield person_request
         # 然后是对评论信息的收集，存储评论的时候需要电影ID，所以把电影ID传进去
         comment_url = response.xpath('//*[@id="comments-section"]/div[1]/h2/span/a/@href').extract()[0]
         comment_request = Request(comment_url, callback=self.parse_source.comment_parse)
