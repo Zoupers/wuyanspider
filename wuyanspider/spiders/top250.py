@@ -69,7 +69,10 @@ class Top250Spider(scrapy.Spider):
         """
         _all = response.xpath('/html/head/script[19]/text()').extract()[0]
         total = json.loads(_all.replace('\n', ''))
-        # rank, star_num, director, main_actor, writer
+        # rank, star_num, image
+        # director, main_actor, writer
+        response.meta['movie']['rank'] = total['aggregateRating']['ratingValue']
+        response.meta['movie']['star_num'] = total['aggregateRating']['ratingCount']
         long = response.xpath('//*[@id="info"]/span[@property="v:runtime"]/text()').extract()[0]
         response.meta['movie']['long'] = long
         try:
