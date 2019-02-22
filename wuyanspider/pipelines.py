@@ -36,7 +36,7 @@ class WuyanspiderPipeline(object):
 
     def open_spider(self, spider):
         self.db = pymysql.connect(user=self.user, password=self.password, host=self.host, port=self.port,
-                                  database=self.database)
+                                  database=self.database, charset='utf8mb4')
         self.cursor = self.db.cursor()
         self.cursor.execute('SHOW DATABASES')
         databases = self.cursor.fetchall()

@@ -13,13 +13,14 @@ from scrapy.downloadermiddlewares.cookies import CookiesMiddleware
 from fake_useragent import UserAgent
 # import random
 
-#
+
 class MyCookiesMiddleware(CookiesMiddleware):
 
     def __init__(self, crawler, debug=False):
         self.jars = defaultdict(CookieJar)
         self.debug = debug
         self.crawler = crawler
+        self.count = 0
 
     @classmethod
     def from_crawler(cls, crawler):
@@ -29,32 +30,22 @@ class MyCookiesMiddleware(CookiesMiddleware):
         return cls(crawler, crawler.settings.getbool('COOKIES_DEBUG'))
 
     def process_request(self, request, spider):
-        self.count = 0
-        # print(self.crawler.stats._stats.get('downloader/request_count'), dir(self.crawler.stats._stats.get('downloader/request_count')))
-        c = self.crawler.stats._stats.get('downloader/request_count')
-        num = None if not c else int(c)
-        fake = UserAgent()
-        if not num:
-            cookie = requests.get('https://movie.douban.com', headers={'User-Agent': fake.random}).cookies
-            request.cookies = cookie
-        elif num - self.count > 20:
-            self.count = num
-            cookie = requests.get('https://movie.douban.com', headers={'User-Agent': fake.random}).cookies
-            request.cookies = cookie
-        else:
-            if request.meta.get('dont_merge_cookies', False):
-                return
+        if request.meta.get('dont_merge_cookies', False):
+            return
 
-            cookiejarkey = request.meta.get("cookiejar")
-            jar = self.jars[cookiejarkey]
-            cookies = self._get_request_cookies(jar, request)
-            for cookie in cookies:
-                jar.set_cookie_if_ok(cookie, request)
+        cookiejarkey = request.meta.get("cookiejar")
+        jar = self.jars[cookiejarkey]
+        cookies = self._get_request_cookies(jar, request)
+        for cookie in cookies:
+            jar.set_cookie_if_ok(cookie, request)
 
-            # set Cookie header
-            request.headers.pop('Cookie', None)
+        # set Cookie header
+        request.headers.pop('Cookie', None)
+        c = 0 if not self.crawler.stats._stats.get('downloader/request_count') else self.crawler.stats._stats.get('downloader/request_count')
+        if c - self.count > 50:
+            self.count = c
             jar.add_cookie_header(request)
-            self._debug_cookie(request, spider)
+        self._debug_cookie(request, spider)
 
 
 class MyUserAgentMiddleware(UserAgentMiddleware):
