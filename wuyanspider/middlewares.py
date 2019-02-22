@@ -4,33 +4,57 @@
 #
 # See documentation in:
 # https://doc.scrapy.org/en/latest/topics/spider-middleware.html
-
+import requests
 from scrapy import signals
+from collections import defaultdict
+from scrapy.http.cookies import CookieJar
 from scrapy.downloadermiddlewares.useragent import UserAgentMiddleware
+from scrapy.downloadermiddlewares.cookies import CookiesMiddleware
 from fake_useragent import UserAgent
 # import random
 
+#
+class MyCookiesMiddleware(CookiesMiddleware):
 
-# class RandomProxy(object):
-#
-#     def __init__(self,iplist):
-#         # 初始化一下数据库连接
-#         self.iplist=iplist
-#
-#     @classmethod
-#     def from_crawler(cls,crawler):
-#         # 从Settings中加载IPLIST的值
-#         return cls(crawler.settings.getlist('IPLIST'))
-#
-#     def process_request(self, request, spider):
-#         """
-#         在请求上添加代理
-#         :param request:
-#         :param spider:
-#         :return:
-#         """
-#         proxy = random.choice(self.iplist)
-#         request.meta['proxy'] = proxy
+    def __init__(self, crawler, debug=False):
+        self.jars = defaultdict(CookieJar)
+        self.debug = debug
+        self.crawler = crawler
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        # print(dir(crawler))
+        if not crawler.settings.getbool('COOKIES_ENABLED'):
+            pass
+        return cls(crawler, crawler.settings.getbool('COOKIES_DEBUG'))
+
+    def process_request(self, request, spider):
+        self.count = 0
+        # print(self.crawler.stats._stats.get('downloader/request_count'), dir(self.crawler.stats._stats.get('downloader/request_count')))
+        c = self.crawler.stats._stats.get('downloader/request_count')
+        num = None if not c else int(c)
+        fake = UserAgent()
+        if not num:
+            cookie = requests.get('https://movie.douban.com', headers={'User-Agent': fake.random}).cookies
+            request.cookies = cookie
+        elif num - self.count > 20:
+            self.count = num
+            cookie = requests.get('https://movie.douban.com', headers={'User-Agent': fake.random}).cookies
+            request.cookies = cookie
+        else:
+            if request.meta.get('dont_merge_cookies', False):
+                return
+
+            cookiejarkey = request.meta.get("cookiejar")
+            jar = self.jars[cookiejarkey]
+            cookies = self._get_request_cookies(jar, request)
+            for cookie in cookies:
+                jar.set_cookie_if_ok(cookie, request)
+
+            # set Cookie header
+            request.headers.pop('Cookie', None)
+            jar.add_cookie_header(request)
+            self._debug_cookie(request, spider)
 
 
 class MyUserAgentMiddleware(UserAgentMiddleware):

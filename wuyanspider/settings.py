@@ -64,6 +64,8 @@ DOWNLOADER_MIDDLEWARES = {
     'wuyanspider.middlewares.WuyanspiderDownloaderMiddleware': 543,
     'scrapy.downloadermiddleware.useragent.UserAgentMiddleware': None,
     'wuyanspider.middlewares.MyUserAgentMiddleware': 400,
+    'scrapy.dowloadermiddleware.cookies.CookiesMiddleware': None,
+    'wuyanspider.middlewares.MyCookiesMiddleware': 700
 }
 
 # Enable or disable extensions

@@ -232,7 +232,7 @@ class WuyanspiderPipeline(object):
             except Exception as e:
                 print(e)
         # 据说不用*会节省很多资源
-        if not self.cursor.execute('SELECT `movie_id` FROM `spider_mpr` WHERE movie_id=%s and person_id=%s and type=%s', item.values()):
+        if not self.cursor.execute('SELECT `movie_id` FROM `spider_mpr` WHERE movie_id=%s and person_id=%s and type=%s', [item['movie_id'], item['person_id'], item['_type']]):
             self.cursor.execute('''
             INSERT INTO `spider_mpr`(`type`, `movie_id`, `person_id`) VALUES(%s, %s, %s)
             ''', [item['_type'], item['movie_id'], item['person_id']])
@@ -252,6 +252,7 @@ class WuyanspiderPipeline(object):
                 `user_id` VARCHAR(30),
                 `user_name` VARCHAR(30),
                 `comment_time` DATETIME,
+                `comment` TEXT,
                 `image` VARCHAR(50)
                 )
                 '''.format(s))
@@ -260,7 +261,7 @@ class WuyanspiderPipeline(object):
 
         if not self.cursor.execute('SELECT user_id FROM '+'`'+item['movie_id']+'`'+'WHERE user_id=%s', (item['user_id'],)):
             sql = 'INSERT INTO '+'`'+item['movie_id']+'`'
-            self.cursor.execute(sql+'(`user_id`, `user_name`, `comment_time`, `image`) VALUES(%s, %s, %s, %s)', [item['user_id'], item['user_name'], item['comment_time'], item['image']])
+            self.cursor.execute(sql+'(`user_id`, `user_name`, `comment_time`, `comment`,`image`) VALUES(%s, %s, %s, %s, %s)', [item['user_id'], item['user_name'], item['comment_time'], item['comment'], item['image']])
             self.db.commit()
 
     def pic_save(self, item, _type):

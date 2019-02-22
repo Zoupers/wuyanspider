@@ -160,7 +160,7 @@ class ClassifySpider(scrapy.Spider):
         :return:
         """
         info = response.text
-        _id = re.findall('id="headline".*?rel="nofollow".*?https://movie.douban.com/celebrity/(\d*?)/', info, re.S)
+        _id = re.findall('id="headline".*?rel="nofollow".*?https://movie.douban.com/celebrity/(\d*?)/', info, re.S)[0]
         name = re.findall(r'<div id="content">.*?<h1>(.+)</h1>', info, re.S)[0]
         try:
             sex = re.findall(r'<span>性别<.+>:\s*(.*)\s*', info)[0]
@@ -197,8 +197,11 @@ class ClassifySpider(scrapy.Spider):
             imdb_number = None
 
         # 寻找照片
-        poster = re.findall('', info, re.S)[0]
-        image = re.findall('', info, re.S)
+        poster = re.findall('id="headline".*?img.*?src="(.*?)"', info, re.S)[0]
+        images = response.xpath('//*[@id="photos"]/ul/li')
+        image = []
+        for i in images:
+            image.extend(i.xpath('./a/img/@href'))
 
         all_introduce = re.findall(r'<span class="all hidden">\s*(.+)<', info)
         if not bool(all_introduce):
