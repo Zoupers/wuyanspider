@@ -113,4 +113,4 @@ IPLIST = [
 
 ]
 
-IMAGES_STORE = '/source'
+# IMAGES_STORE = '/source'
