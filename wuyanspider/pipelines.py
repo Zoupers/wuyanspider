@@ -70,6 +70,7 @@ class WuyanspiderPipeline(object):
         :return:
         """
         item = self.pic_save(item, 1)
+        self.cursor.execute('use `spider`')
         self.cursor.execute('SHOW TABLES')
         all_table = self.cursor.fetchall()
         if ('spider_movie',) not in all_table:
@@ -137,6 +138,7 @@ class WuyanspiderPipeline(object):
         :param item:
         :return:
         """
+        self.cursor.execute('use `spider`')
         item = self.pic_save(item, 2)
         self.cursor.execute('SHOW TABLES')
         all_table = self.cursor.fetchall()
@@ -189,6 +191,7 @@ class WuyanspiderPipeline(object):
             self.db.commit()
 
     def handle_rmr(self, item):
+        self.cursor.execute('use `spider`')
         self.cursor.execute('SHOW TABLES')
         all_table = self.cursor.fetchall()
         _type = item.get('rank_type')
@@ -282,7 +285,7 @@ class WuyanspiderPipeline(object):
                 f.write(requests.get(item['poster'], headers=headers, cookies=cookie).content)
                 item['poster'] = poster_path
             pictures = []
-            for n, pic_url in zip(range(item['image']), item['image']):
+            for n, pic_url in zip(range(len(item['image'])), item['image']):
                 with open(os.path.join(self.pic_path, pic_path), 'wb') as f:
                     f.write(requests.get(pic_url, headers=headers, cookies=cookie).content)
                 pic = item['_id'] + '_' + str(n) + '.jpg'
@@ -298,7 +301,7 @@ class WuyanspiderPipeline(object):
                 f.write(requests.get(item['poster'], headers=headers, cookies=cookie).content)
                 item['poster'] = poster_path
             pictures = []
-            for n, pic_url in zip(range(item['image']), item['image']):
+            for n, pic_url in zip(range(len(item['image'])), item['image']):
                 pic = item['_id'] + '_' + str(n) + '.jpg'
                 pic_path = os.path.join('people', pic)
                 pictures.append(pic_path)

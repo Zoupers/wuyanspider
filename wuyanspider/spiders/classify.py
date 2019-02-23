@@ -166,12 +166,12 @@ class ClassifySpider(scrapy.Spider):
         try:
             sex = re.findall(r'<span>性别<.+>:\s*(.*)\s*', info)[0]
         except:
-            print('Can not find actor sex')
+            # print('Can not find actor sex')
             sex = None
         try:
             constellation = re.findall(r'<span>星座<.+>:\s*(.*)\s*', info)[0]
         except:
-            print('Can not find constellation')
+            # print('Can not find constellation')
             constellation = None
         try:
             birthday = re.findall(r'<span>出生日期<.+>:\s*(.*)\s*', info)[0]
@@ -179,22 +179,22 @@ class ClassifySpider(scrapy.Spider):
             try:
                 birthday = re.findall(r'<span>生卒日期<.+>:\s*(.*)\s*', info)[0]
             except:
-                print('Can not find birthday')
+                # print('Can not find birthday')
                 birthday = None
         try:
             birthplace = re.findall(r'<span>出生地<.+>:\s*(.*)\s*', info)[0]
         except:
-            print('Can not find birthplace')
+            # print('Can not find birthplace')
             birthplace = None
         try:
             profession = re.findall(r'<span>职业<.+>:\s*(.*)\s*', info)[0]
         except:
-            print('Can not find profession')
+            # print('Can not find profession')
             profession = None
         try:
             imdb_number = re.findall(r'<span>imdb编号<.+>:\s*.+>(.+)</a>', info)[0]
         except:
-            print('Can not find IMDB编号')
+            # print('Can not find IMDB编号')
             imdb_number = None
 
         # 寻找照片
