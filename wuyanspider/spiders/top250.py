@@ -69,29 +69,30 @@ class Top250Spider(scrapy.Spider):
         :param response:
         :return:
         """
-        _all = response.xpath('//script[@type="application/ld+json"]/text()').extract()[0]
-        s = _all.replace('\n', '')
-        total = json.loads(s)
+        # _all = response.xpath('//script[@type="application/ld+json"]/text()')
+        # s = _all.replace('\n', '')
+        # total = json.loads(s)
+        t = response.text
         # rank, star_num, year, _class, countries
         # image
         # director, main_actor, writer
-        response.meta['movie']['rank'] = total['aggregateRating']['ratingValue']
-        response.meta['movie']['star_num'] = total['aggregateRating']['ratingCount']
-        response.meta['movie']['year'] = total['datePublished']
-        response.meta['movie']['_class'] = json.dumps(total['genre'])
-        response.meta['movie']['countries'] = re.findall('制片国家/地区:</span> (.*?)<', response.text)[0]
+        response.meta['movie']['rank'] = re.findall('ratingValue": "(.*?)"', t, re.S)
+        response.meta['movie']['star_num'] = re.findall('ratingCount": "(.*?)"', t, re.S)
+        response.meta['movie']['year'] = re.findall('datePublished": "(.*?)"', t, re.S)
+        response.meta['movie']['_class'] = json.dumps(json.loads(re.findall('genre": (\[.*?\])', t, re.S)[0]), ensure_ascii=False)
+        response.meta['movie']['countries'] = re.findall('制片国家/地区:</span> (.*?)<', t)[0]
         long = response.xpath('//*[@id="info"]/span[@property="v:runtime"]/text()').extract()[0]
         response.meta['movie']['long'] = long
         try:
-            content = response.xpath('//span[@property="v:summary"]/text()').extract()[0].strip()
-        except Exception as e:
             content = response.xpath('//span[@class="all hidden"]/text()').extract()[0].strip()
+        except Exception as e:
+            content = response.xpath('//span[@property="v:summary"]/text()').extract()[0].strip()
         response.meta['movie']['details'] = content
         # 对电影剧照的收集
         images = response.xpath('//*[@id="related-pic"]/ul/li')
         image = []
         for image_ in images:
-            img = image_.xpath('./a/img/@href').extract()
+            img = image_.xpath('./a/img/@src').extract()
             image.extend(img)
         response.meta['movie']['image'] = image
         # 对电影演员的收集，这些演员信息最终是要保存一部分到movie的原始信息中的，
@@ -105,4 +106,4 @@ class Top250Spider(scrapy.Spider):
         comment_url = response.xpath('//*[@id="comments-section"]/div[1]/h2/span/a/@href').extract()[0]
         comment_request = Request(comment_url, callback=self.parse_source.comment_parse)
         comment_request.meta['movie_id'] = response.meta['movie']['_id']
-        yield comment_request
+        # yield comment_request

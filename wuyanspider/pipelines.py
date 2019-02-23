@@ -89,7 +89,7 @@ class WuyanspiderPipeline(object):
                 `review` TEXT,
                 `details` TEXT,
                 `poster` VARCHAR(50),
-                `pic_path` TEXT)''')
+                `image` TEXT)''')
             except Exception as e:
                 print(e)
 
@@ -110,7 +110,7 @@ class WuyanspiderPipeline(object):
             `review`,
             `details`,
             `poster`,
-            `pic_path`
+            `image`
             ) VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', [
                 item['movie_name'],
@@ -191,15 +191,13 @@ class WuyanspiderPipeline(object):
     def handle_rmr(self, item):
         self.cursor.execute('SHOW TABLES')
         all_table = self.cursor.fetchall()
-        _type = item.pop('rank_type')
+        _type = item.get('rank_type')
+        # print(all_table, _type)
         if (_type, ) not in all_table:
+            print('Try CREATE')
             try:
-                self.cursor.execute('''
-                CREATE TABLE %s(
-                `rank` INTEGER NOT NULL PRIMARY KEY,
-                `movie_id` VARCHAR(15) NOT NULL
-                )
-                ''', (_type,))
+                sql = 'CREATE TABLE '+'`'+_type+'`'
+                self.cursor.execute(sql+'(`rank` INTEGER NOT NULL PRIMARY KEY,`movie_id` VARCHAR(15) NOT NULL)')
             except Exception as e:
                 print(e)
 
@@ -285,11 +283,12 @@ class WuyanspiderPipeline(object):
                 item['poster'] = poster_path
             pictures = []
             for n, pic_url in zip(range(item['image']), item['image']):
-                pic = item['_id'] + '_' + str(n) + '.jpg'
-                pic_path = os.path.join('movie', pic)
-                pictures.append(pic_path)
                 with open(os.path.join(self.pic_path, pic_path), 'wb') as f:
                     f.write(requests.get(pic_url, headers=headers, cookies=cookie).content)
+                pic = item['_id'] + '_' + str(n) + '.jpg'
+                pic_path = os.path.join('movie/', pic)
+                pictures.append(pic_path)
+
             item['image'] = json.dumps(pictures)
             return item
 

@@ -71,9 +71,10 @@ class ClassifySpider(scrapy.Spider):
         :return:
         """
         try:
-            content = response.xpath('span[property="v:summary"]').extract()[0].strip()
+            content = response.xpath('//span[@class="all hidden"]/text()').extract()[0].strip()
         except Exception as e:
-            content = response.xpath('span[class="all hidden"]').extract()[0].strip()
+            content = response.xpath('//span[@property="v:summary"]/text()').extract()[0].strip()
+        # print(content)
         response.meta['movie']['details'] = content
         # 对电影剧照的收集
         images = response.xpath('//*[@id="related-pic"]/ul/li')
@@ -201,7 +202,7 @@ class ClassifySpider(scrapy.Spider):
         images = response.xpath('//*[@id="photos"]/ul/li')
         image = []
         for i in images:
-            image.extend(i.xpath('./a/img/@href'))
+            image.extend(i.xpath('./a/img/@href').extract())
 
         all_introduce = re.findall(r'<span class="all hidden">\s*(.+)<', info)
         if not bool(all_introduce):

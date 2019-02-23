@@ -109,6 +109,7 @@ MYSQL_PORT = 3306
 MYSQL_DATABASE = 'spider'
 PIC_DIR = os.path.join(BASE_DIR, 'source')
 
+# 代理IP列表
 IPLIST = [
 
 ]
